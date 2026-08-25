@@ -37,7 +37,7 @@ automation pipeline. Built from the full project spec (`docs/`).
 | Settings (business, voice/tone, alerts) | `src/app/dashboard/settings` | §4.7 |
 | Billing (plan, usage, invoices, 80% alert) | `src/app/dashboard/billing` | §4.8 |
 | **Internal admin** (tenants, real margins, calls needing review) | `src/app/admin` | §4.9 |
-| **Core AI engine** (dynamic per-tenant system prompt, intents, slot-filling, edge cases) | `src/lib/ai/system-prompt.ts` | §5 |
+| **Core AI engine** — canonical receptionist prompt template + per-tenant renderer, Vapi function tools, intents, slot-filling, edge cases | `src/lib/ai/receptionist-prompt.ts`, `src/lib/ai/tools.ts`, `src/lib/ai/system-prompt.ts` | §5 |
 | **Full multi-tenant DB schema + Row Level Security** | `supabase/schema.sql` | §10, §11 |
 | **Vapi post-call webhook → n8n** | `src/app/api/vapi/webhook/route.ts` | §8.1, §9.1 |
 

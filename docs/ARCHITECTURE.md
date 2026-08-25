@@ -31,8 +31,12 @@ row, a Vapi assistant (via API), and a Twilio number if needed — no manual wor
 ```
 
 Tenant context (pricing, hours, FAQ) is injected per call from Supabase — the
-assistant only ever speaks facts it was given (Spec §5.1). The dynamic prompt is
-assembled by `src/lib/ai/system-prompt.ts`.
+assistant only ever speaks facts it was given (Spec §5.1). The canonical prompt
+template lives in `src/lib/ai/receptionist-prompt.ts` (identity, opening
+disclosure, hard rules, intent routing A–F, edge cases, closing) and is rendered
+per tenant by `renderReceptionistPrompt`. The four functions it calls
+(`check_availability`, `book_appointment`, `log_message`, `escalate_emergency`)
+are defined as Vapi tool schemas in `src/lib/ai/tools.ts`.
 
 ## 3. Post-call automation (n8n, Spec §9.1)
 

@@ -1,22 +1,23 @@
 /**
- * Core AI Engine — dynamic assistant instructions (Spec §5).
+ * Core AI Engine — engine metadata + entry point (Spec §5).
  *
- * There is NO single static prompt shared across tenants. For every live call,
- * the caller's business context (pricing, hours, FAQ) is injected from the
- * database so the assistant only ever speaks facts it was given (Spec §5.1).
+ * The full runtime prompt lives in `./receptionist-prompt.ts` (the single
+ * source of truth). This module re-exports the renderer + tools and keeps the
+ * structured reference data (intents, slot order, edge cases, and the post-call
+ * extraction shape) that the dashboard, admin, and n8n pipeline rely on.
+ *
+ * There is NO single static prompt shared across tenants: for every live call
+ * the caller's business context (pricing, hours, FAQ) is injected so the
+ * assistant only ever speaks facts it was given (Spec §5.1).
  */
 
-export type GreetingStyle = "formal" | "friendly";
-
-export interface BusinessContext {
-  name: string;
-  industry?: string | null;
-  timezone?: string | null;
-  greetingStyle: GreetingStyle;
-  hours?: Record<string, string>; // { monday: "8:00-17:00", ... }
-  pricing: { service_name: string; price_range: string }[];
-  faq: { question: string; answer: string }[];
-}
+export {
+  RECEPTIONIST_PROMPT_TEMPLATE,
+  renderReceptionistPrompt,
+} from "./receptionist-prompt";
+export type { ReceptionistContext, GreetingStyle } from "./receptionist-prompt";
+export { RECEPTIONIST_TOOLS } from "./tools";
+export type { FunctionTool } from "./tools";
 
 /** Caller intents the engine classifies against (Spec §5.2). */
 export const INTENTS = {
@@ -51,64 +52,6 @@ export const EDGE_CASES = [
   "Vapi/LLM outage → fall back to plain Twilio voicemail.",
   "After-hours but genuine emergency → escalate immediately via auto-call + SMS.",
 ] as const;
-
-const HARD_RULES = [
-  "Never invent prices or facts that are not in the context below.",
-  "Always collect the caller's name and phone number within the first minute.",
-  "Confirm any appointment out loud clearly before ending the call.",
-  "Do not end the call before checking the caller has nothing else to ask.",
-  "Open with the legally required recording disclosure before anything else.",
-];
-
-function toneLine(style: GreetingStyle): string {
-  return style === "formal"
-    ? "Speak in a professional, courteous tone."
-    : "Speak in a warm, friendly, conversational tone.";
-}
-
-/** Build the full system prompt for one live call. */
-export function buildSystemPrompt(ctx: BusinessContext): string {
-  const pricing = ctx.pricing.length
-    ? ctx.pricing.map((p) => `- ${p.service_name}: ${p.price_range}`).join("\n")
-    : "- (no pricing provided — take a message instead of quoting)";
-
-  const faq = ctx.faq.length
-    ? ctx.faq.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n")
-    : "- (no FAQ provided)";
-
-  const hours = ctx.hours
-    ? Object.entries(ctx.hours)
-        .map(([d, h]) => `- ${d}: ${h}`)
-        .join("\n")
-    : "- (hours not set)";
-
-  return `You are the receptionist for ${ctx.name}${
-    ctx.industry ? ` (${ctx.industry})` : ""
-  }. You speak on their behalf. ${toneLine(ctx.greetingStyle)}
-
-## Hard rules (never break)
-${HARD_RULES.map((r, i) => `${i + 1}. ${r}`).join("\n")}
-
-## Business hours (timezone: ${ctx.timezone ?? "local"})
-${hours}
-
-## Pricing you may quote (and ONLY these)
-${pricing}
-
-## Knowledge base — answer FAQ only from here
-${faq}
-
-## Intent handling
-${Object.entries(INTENTS)
-  .map(([k, v]) => `- ${k}: ${v}`)
-  .join("\n")}
-
-## When booking, gather in this order
-${BOOKING_SLOTS.join(" → ")}
-
-## Edge cases
-${EDGE_CASES.map((e) => `- ${e}`).join("\n")}`;
-}
 
 /** Post-call structured extraction target (fed to n8n, Spec §9.1). */
 export interface CallExtraction {

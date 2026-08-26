@@ -1,113 +1,106 @@
-import Link from "next/link";
 import { KpiCard } from "@/components/ui/KpiCard";
 import { CallsChart } from "@/components/CallsChart";
-import { Badge } from "@/components/ui/Badge";
-import { KPIS, RECENT_CALLS, DEMO_BUSINESS } from "@/lib/mock-data";
+import { CallsList } from "@/components/CallsList";
+import { Reveal } from "@/components/ui/Reveal";
+import { TableSkeleton, KpiSkeleton, Skeleton } from "@/components/ui/Skeleton";
+import { KPIS, RECENT_CALLS, DEMO_BUSINESS, isEmptyState } from "@/lib/mock-data";
 
-function fmtDuration(s: number) {
-  const m = Math.floor(s / 60);
-  const r = s % 60;
-  return `${m}:${r.toString().padStart(2, "0")}`;
-}
+export default function DashboardHome({
+  searchParams,
+}: {
+  searchParams?: { state?: string };
+}) {
+  const empty = isEmptyState(searchParams);
+  const calls = empty ? [] : RECENT_CALLS;
 
-export default function DashboardHome() {
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-slate-900">
-            Good afternoon, {DEMO_BUSINESS.name}
+            Welcome back, {DEMO_BUSINESS.name}
           </h1>
-          <p className="text-sm text-slate-500">Here's what PulseDesk handled this month.</p>
+          <p className="text-sm text-slate-500">Here's everything PulseDesk handled for you this month.</p>
         </div>
-        <span className="hidden items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-sm font-semibold text-success sm:inline-flex">
-          <span className="h-2 w-2 rounded-full bg-success" /> Line is live
+        <span className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-1.5 text-sm font-semibold text-success">
+          <span className="h-2 w-2 rounded-full bg-success" /> Your line is live
         </span>
       </div>
 
-      {/* KPI cards (Spec §4.4) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard label="Calls this month" value={KPIS.callsThisMonth.toString()} accent="trust" />
-        <KpiCard
-          label="Calls rescued"
-          value={KPIS.callsRescued.toString()}
-          sub="would have been missed"
-          accent="alert"
-        />
-        <KpiCard
-          label="Appointments booked"
-          value={KPIS.appointmentsBooked.toString()}
-          accent="success"
-        />
-        <KpiCard
-          label="Recovered revenue"
-          value={`$${KPIS.recoveredRevenue.toLocaleString()}`}
-          sub={`avg deal × booked appts`}
-          accent="signal"
-        />
-      </div>
+      {/* KPI cards (Spec §4.4) — animated, with trend + tooltip */}
+      <Reveal
+        skeleton={
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)}
+          </div>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <KpiCard label="Calls this month" value={KPIS.callsThisMonth} delta={KPIS.deltas.callsThisMonth} accent="trust" />
+          <KpiCard label="Calls rescued" value={KPIS.callsRescued} delta={KPIS.deltas.callsRescued} sub="would've been missed" accent="alert" />
+          <KpiCard label="Appointments booked" value={KPIS.appointmentsBooked} delta={KPIS.deltas.appointmentsBooked} accent="success" />
+          <KpiCard
+            label="Recovered revenue"
+            value={KPIS.recoveredRevenue}
+            prefix="$"
+            delta={KPIS.deltas.recoveredRevenue}
+            accent="signal"
+            info={`Estimated as your average deal value ($${DEMO_BUSINESS.avgDealValue.toLocaleString()}) × appointments booked (${KPIS.appointmentsBooked}). Adjust your average deal value in Settings.`}
+          />
+        </div>
+      </Reveal>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <CallsChart />
+          <Reveal
+            skeleton={
+              <div className="card">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-6 h-40 w-full" />
+              </div>
+            }
+          >
+            <CallsChart />
+          </Reveal>
         </div>
-        <div className="card">
-          <h3 className="font-display text-lg font-semibold text-slate-900">This month</h3>
-          <dl className="mt-4 space-y-3 text-sm">
-            <Row k="Answer rate" v="100%" />
-            <Row k="Avg. call length" v="2m 18s" />
-            <Row k="Emergencies escalated" v="3" />
-            <Row k="Spam blocked" v="11" />
-          </dl>
-        </div>
+        <Reveal
+          skeleton={
+            <div className="card space-y-4">
+              <Skeleton className="h-5 w-28" />
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+            </div>
+          }
+        >
+          <div className="card">
+            <h3 className="font-display text-lg font-semibold text-slate-900">This month at a glance</h3>
+            <dl className="mt-4 space-y-3 text-sm">
+              <Row k="Answer rate" v="100%" good />
+              <Row k="Avg. call length" v="2m 18s" />
+              <Row k="Emergencies escalated" v="3" />
+              <Row k="Spam blocked" v="11" />
+            </dl>
+          </div>
+        </Reveal>
       </div>
 
       {/* Recent calls (Spec §4.4) */}
       <div className="card mt-6 !p-0">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <h3 className="font-display text-lg font-semibold text-slate-900">Recent calls</h3>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-y border-slate-100 text-xs uppercase text-slate-400">
-              <tr>
-                <th className="px-6 py-3 font-medium">Caller</th>
-                <th className="px-6 py-3 font-medium">Time</th>
-                <th className="px-6 py-3 font-medium">Length</th>
-                <th className="px-6 py-3 font-medium">Outcome</th>
-                <th className="px-6 py-3 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {RECENT_CALLS.map((c) => (
-                <tr key={c.id} className="hover:bg-canvas/60">
-                  <td className="px-6 py-3">
-                    <p className="font-medium text-slate-800">{c.caller}</p>
-                    <p className="text-xs text-slate-400">{c.number}</p>
-                  </td>
-                  <td className="px-6 py-3 text-slate-500">{c.time}</td>
-                  <td className="px-6 py-3 text-slate-500">{fmtDuration(c.durationSec)}</td>
-                  <td className="px-6 py-3"><Badge value={c.outcome} /></td>
-                  <td className="px-6 py-3 text-right">
-                    <Link href={`/dashboard/calls/${c.id}`} className="font-semibold text-trust hover:underline">
-                      View
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Reveal skeleton={<TableSkeleton rows={5} cols={4} />}>
+          <CallsList calls={calls} />
+        </Reveal>
       </div>
     </div>
   );
 }
 
-function Row({ k, v }: { k: string; v: string }) {
+function Row({ k, v, good }: { k: string; v: string; good?: boolean }) {
   return (
     <div className="flex items-center justify-between">
       <dt className="text-slate-500">{k}</dt>
-      <dd className="font-semibold text-slate-800">{v}</dd>
+      <dd className={`font-semibold ${good ? "text-success" : "text-slate-800"}`}>{v}</dd>
     </div>
   );
 }

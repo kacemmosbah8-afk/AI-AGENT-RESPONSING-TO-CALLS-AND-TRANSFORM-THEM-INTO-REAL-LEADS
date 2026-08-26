@@ -1,5 +1,8 @@
 import { Sidebar, MobileTopBar } from "@/components/Sidebar";
 
+// Always render per-request so tenant data/session is never statically cached.
+export const dynamic = "force-dynamic";
+
 export default function DashboardLayout({
   children,
 }: {

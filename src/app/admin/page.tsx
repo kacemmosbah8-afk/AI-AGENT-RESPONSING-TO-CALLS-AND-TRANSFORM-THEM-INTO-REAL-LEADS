@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { TENANTS } from "@/lib/mock-data";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Internal Admin Panel (Spec §4.9) — owner-only.
  * Lists every tenant, real operating margin, and calls needing review.
@@ -21,6 +23,11 @@ export default function AdminPage() {
           <Link href="/dashboard" className="btn-ghost">← Back to dashboard</Link>
         </div>
 
+        <div className="mb-6 rounded-xl bg-signal/10 px-4 py-3 text-sm text-slate-600">
+          <span className="font-semibold text-slate-700">Demo data.</span> The cross-tenant admin
+          view reads across all businesses, which requires a service-role connection — wired in a
+          later phase. Your own tenant data is live everywhere else.
+        </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <Stat label="Active MRR" value={`$${mrr.toLocaleString()}`} />
           <Stat label="Monthly operating cost" value={`$${cost.toLocaleString()}`} />

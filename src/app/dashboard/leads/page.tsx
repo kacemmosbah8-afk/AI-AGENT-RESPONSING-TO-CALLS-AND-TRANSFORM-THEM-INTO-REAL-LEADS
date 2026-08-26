@@ -2,15 +2,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Reveal } from "@/components/ui/Reveal";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState, InboxIcon } from "@/components/ui/EmptyState";
-import { LEADS, isEmptyState } from "@/lib/mock-data";
+import { isEmptyState } from "@/lib/mock-data";
+import { getLeads } from "@/lib/data";
 
 /** Messages / leads (Spec §10): captured requests that weren't booked. */
-export default function LeadsPage({
+export default async function LeadsPage({
   searchParams,
 }: {
   searchParams?: { state?: string };
 }) {
-  const leads = isEmptyState(searchParams) ? [] : LEADS;
+  const { leads: all, isDemo } = await getLeads();
+  const leads = isDemo && isEmptyState(searchParams) ? [] : all;
 
   return (
     <div>

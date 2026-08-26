@@ -3,22 +3,26 @@ import { CallsChart } from "@/components/CallsChart";
 import { CallsList } from "@/components/CallsList";
 import { Reveal } from "@/components/ui/Reveal";
 import { TableSkeleton, KpiSkeleton, Skeleton } from "@/components/ui/Skeleton";
-import { KPIS, RECENT_CALLS, DEMO_BUSINESS, isEmptyState } from "@/lib/mock-data";
+import { isEmptyState } from "@/lib/mock-data";
+import { getDashboardData } from "@/lib/data";
 
-export default function DashboardHome({
+export default async function DashboardHome({
   searchParams,
 }: {
   searchParams?: { state?: string };
 }) {
-  const empty = isEmptyState(searchParams);
-  const calls = empty ? [] : RECENT_CALLS;
+  const data = await getDashboardData();
+  // The ?state=empty demo toggle only applies in demo mode.
+  const calls = data.isDemo && isEmptyState(searchParams) ? [] : data.calls;
+  const k = data.kpis;
+  const avgDeal = k.appointmentsBooked > 0 ? Math.round(k.recoveredRevenue / k.appointmentsBooked) : 0;
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-slate-900">
-            Welcome back, {DEMO_BUSINESS.name}
+            Welcome back, {data.businessName}
           </h1>
           <p className="text-sm text-slate-500">Here's everything PulseDesk handled for you this month.</p>
         </div>
@@ -27,7 +31,6 @@ export default function DashboardHome({
         </span>
       </div>
 
-      {/* KPI cards (Spec §4.4) — animated, with trend + tooltip */}
       <Reveal
         skeleton={
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -36,16 +39,16 @@ export default function DashboardHome({
         }
       >
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <KpiCard label="Calls this month" value={KPIS.callsThisMonth} delta={KPIS.deltas.callsThisMonth} accent="trust" />
-          <KpiCard label="Calls rescued" value={KPIS.callsRescued} delta={KPIS.deltas.callsRescued} sub="would've been missed" accent="alert" />
-          <KpiCard label="Appointments booked" value={KPIS.appointmentsBooked} delta={KPIS.deltas.appointmentsBooked} accent="success" />
+          <KpiCard label="Calls this month" value={k.callsThisMonth} delta={k.deltas?.callsThisMonth} accent="trust" />
+          <KpiCard label="Calls rescued" value={k.callsRescued} delta={k.deltas?.callsRescued} sub="would've been missed" accent="alert" />
+          <KpiCard label="Appointments booked" value={k.appointmentsBooked} delta={k.deltas?.appointmentsBooked} accent="success" />
           <KpiCard
             label="Recovered revenue"
-            value={KPIS.recoveredRevenue}
+            value={k.recoveredRevenue}
             prefix="$"
-            delta={KPIS.deltas.recoveredRevenue}
+            delta={k.deltas?.recoveredRevenue}
             accent="signal"
-            info={`Estimated as your average deal value ($${DEMO_BUSINESS.avgDealValue.toLocaleString()}) × appointments booked (${KPIS.appointmentsBooked}). Adjust your average deal value in Settings.`}
+            info={`Estimated as your average deal value${avgDeal ? ` ($${avgDeal.toLocaleString()})` : ""} × appointments booked (${k.appointmentsBooked}). Adjust your average deal value in Settings.`}
           />
         </div>
       </Reveal>
@@ -60,7 +63,7 @@ export default function DashboardHome({
               </div>
             }
           >
-            <CallsChart />
+            <CallsChart data={data.weekly} />
           </Reveal>
         </div>
         <Reveal
@@ -74,16 +77,15 @@ export default function DashboardHome({
           <div className="card">
             <h3 className="font-display text-lg font-semibold text-slate-900">This month at a glance</h3>
             <dl className="mt-4 space-y-3 text-sm">
-              <Row k="Answer rate" v="100%" good />
-              <Row k="Avg. call length" v="2m 18s" />
-              <Row k="Emergencies escalated" v="3" />
-              <Row k="Spam blocked" v="11" />
+              <Row k="Answer rate" v={data.calls.length ? "100%" : "—"} good={data.calls.length > 0} />
+              <Row k="Appointments booked" v={String(k.appointmentsBooked)} />
+              <Row k="Calls this month" v={String(k.callsThisMonth)} />
+              <Row k="Spam blocked" v={String(Math.max(0, k.callsThisMonth - k.callsRescued))} />
             </dl>
           </div>
         </Reveal>
       </div>
 
-      {/* Recent calls (Spec §4.4) */}
       <div className="card mt-6 !p-0">
         <div className="flex items-center justify-between px-4 py-4 sm:px-6">
           <h3 className="font-display text-lg font-semibold text-slate-900">Recent calls</h3>

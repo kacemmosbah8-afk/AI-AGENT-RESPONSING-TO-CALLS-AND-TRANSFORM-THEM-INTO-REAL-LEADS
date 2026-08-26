@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { SignOutButton } from "@/components/auth/SignOutButton";
+
+const NAV_ITEM_CLS =
+  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white";
 
 export const NAV = [
   { href: "/dashboard", label: "Home", icon: "M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10" },
@@ -14,7 +18,6 @@ export const NAV = [
 
 const FOOTER_NAV = [
   { href: "/admin", label: "Admin", icon: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4z" },
-  { href: "/login", label: "Log out", icon: "M16 17l5-5-5-5M21 12H9M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" },
 ];
 
 function BrandMark() {
@@ -62,6 +65,7 @@ export function Sidebar() {
         {FOOTER_NAV.map((item) => (
           <NavLink key={item.href} {...item} active={path === item.href} />
         ))}
+        <SignOutButton className={NAV_ITEM_CLS} />
       </div>
     </aside>
   );
@@ -101,6 +105,7 @@ export function MobileTopBar() {
             {[...NAV, ...FOOTER_NAV].map((item) => (
               <NavLink key={item.href} {...item} active={path === item.href} onClick={close} />
             ))}
+            <SignOutButton className={NAV_ITEM_CLS} onDone={close} />
           </nav>
         </>
       )}

@@ -2,15 +2,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Reveal } from "@/components/ui/Reveal";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState, CalendarIcon } from "@/components/ui/EmptyState";
-import { APPOINTMENTS, isEmptyState } from "@/lib/mock-data";
+import { isEmptyState } from "@/lib/mock-data";
+import { getAppointments } from "@/lib/data";
 
 /** Appointments (Spec §4.6): synced with Google Calendar; responsive. */
-export default function AppointmentsPage({
+export default async function AppointmentsPage({
   searchParams,
 }: {
   searchParams?: { state?: string };
 }) {
-  const appts = isEmptyState(searchParams) ? [] : APPOINTMENTS;
+  const { appts: all, isDemo } = await getAppointments();
+  const appts = isDemo && isEmptyState(searchParams) ? [] : all;
 
   return (
     <div>

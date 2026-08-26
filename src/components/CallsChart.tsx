@@ -1,9 +1,7 @@
-import { WEEKLY_CALLS } from "@/lib/mock-data";
-
 /** Dependency-free weekly bar chart (Spec §4.4). */
-export function CallsChart() {
-  const max = Math.max(...WEEKLY_CALLS.map((d) => d.calls));
-  const total = WEEKLY_CALLS.reduce((s, d) => s + d.calls, 0);
+export function CallsChart({ data }: { data: { day: string; calls: number }[] }) {
+  const max = Math.max(1, ...data.map((d) => d.calls));
+  const total = data.reduce((s, d) => s + d.calls, 0);
 
   return (
     <div className="card">
@@ -19,9 +17,8 @@ export function CallsChart() {
         </span>
       </div>
 
-      {/* Fixed-height row so each column can fill it and bar %s resolve. */}
       <div className="flex h-44 items-end gap-2 sm:gap-3">
-        {WEEKLY_CALLS.map((d) => {
+        {data.map((d) => {
           const pct = Math.round((d.calls / max) * 100);
           return (
             <div key={d.day} className="group flex h-full flex-1 flex-col items-center justify-end gap-2">
@@ -30,7 +27,7 @@ export function CallsChart() {
               </span>
               <div
                 className="w-full rounded-t-md bg-gradient-to-t from-trust to-signal/80 transition-all duration-300 group-hover:from-trust group-hover:to-signal"
-                style={{ height: `${Math.max(pct, 6)}%` }}
+                style={{ height: `${d.calls === 0 ? 2 : Math.max(pct, 6)}%` }}
                 title={`${d.calls} calls`}
               />
               <span className="text-xs font-medium text-slate-400">{d.day}</span>

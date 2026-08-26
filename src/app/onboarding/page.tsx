@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
+import { saveBusiness } from "@/lib/actions";
 
 const STEPS = [
   "Business info",
@@ -29,9 +30,19 @@ export default function OnboardingPage() {
   const [calendarConnected, setCalendarConnected] = useState(false);
   const [reception, setReception] = useState<"forward" | "new">("forward");
   const [saved, setSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Step-1 fields + inline validation
   const [biz, setBiz] = useState({ name: "", industry: "Plumbing", city: "", hours: "" });
+  const [pricing, setPricing] = useState([
+    { service_name: "Leak repair", price_range: "$120 – $250" },
+    { service_name: "Drain cleaning", price_range: "$95 – $180" },
+  ]);
+  const [faq, setFaq] = useState([
+    { question: "Do you accept insurance?", answer: "" },
+    { question: "Is there an emergency fee?", answer: "" },
+    { question: "What areas do you serve?", answer: "" },
+  ]);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const errors = {
     name: !biz.name.trim() ? "Enter your business name — it's how the AI greets callers." : "",
@@ -40,12 +51,32 @@ export default function OnboardingPage() {
 
   const last = step === STEPS.length - 1;
 
+  const goLive = async () => {
+    setSubmitting(true);
+    await saveBusiness(
+      {
+        name: biz.name,
+        industry: biz.industry,
+        city: biz.city,
+        hours: biz.hours,
+        greetingStyle: "friendly",
+        voiceId: voice,
+        avgDealValue: 3500,
+        pricing,
+        faq,
+      },
+      true, // completeOnboarding
+    );
+    router.push("/dashboard");
+    router.refresh();
+  };
+
   const next = () => {
     if (step === 0) {
       setTouched({ name: true, city: true });
       if (errors.name || errors.city) return;
     }
-    if (last) router.push("/dashboard");
+    if (last) void goLive();
     else setStep((s) => s + 1);
   };
   const back = () => setStep((s) => Math.max(0, s - 1));
@@ -86,8 +117,8 @@ export default function OnboardingPage() {
 
           <div className="mt-6">
             {step === 0 && <BusinessInfo biz={biz} setBiz={setBiz} errors={errors} touched={touched} setTouched={setTouched} />}
-            {step === 1 && <Pricing />}
-            {step === 2 && <Faq />}
+            {step === 1 && <Pricing rows={pricing} setRows={setPricing} />}
+            {step === 2 && <Faq items={faq} setItems={setFaq} />}
             {step === 3 && <Calendar connected={calendarConnected} onConnect={() => setCalendarConnected(true)} />}
             {step === 4 && <Reception value={reception} onChange={setReception} />}
             {step === 5 && <VoicePicker value={voice} onChange={setVoice} />}
@@ -101,8 +132,8 @@ export default function OnboardingPage() {
               <button onClick={saveForLater} className="hidden text-sm font-semibold text-slate-500 hover:text-trust sm:inline">
                 Save &amp; continue later
               </button>
-              <button onClick={next} className={last ? "btn-signal" : "btn-primary"}>
-                {last ? "🚀 Go live" : "Continue"}
+              <button onClick={next} disabled={submitting} className={last ? "btn-signal" : "btn-primary"}>
+                {last ? (submitting ? "Going live…" : "🚀 Go live") : "Continue"}
               </button>
             </div>
           </div>
@@ -174,11 +205,8 @@ function BusinessInfo({ biz, setBiz, errors, touched, setTouched }: any) {
   );
 }
 
-function Pricing() {
-  const [rows, setRows] = useState([
-    { service: "Leak repair", price: "$120 – $250" },
-    { service: "Drain cleaning", price: "$95 – $180" },
-  ]);
+type PriceRow = { service_name: string; price_range: string };
+function Pricing({ rows, setRows }: { rows: PriceRow[]; setRows: (r: PriceRow[]) => void }) {
   return (
     <div>
       <p className="mb-4 text-sm text-slate-500">
@@ -187,26 +215,27 @@ function Pricing() {
       <div className="space-y-3">
         {rows.map((r, i) => (
           <div key={i} className="flex gap-3">
-            <input className="input" value={r.service} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, service: e.target.value } : x)))} placeholder="Service name" />
-            <input className="input max-w-[160px]" value={r.price} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)))} placeholder="Price range" />
+            <input className="input" value={r.service_name} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, service_name: e.target.value } : x)))} placeholder="Service name" />
+            <input className="input max-w-[160px]" value={r.price_range} onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, price_range: e.target.value } : x)))} placeholder="Price range" />
           </div>
         ))}
       </div>
-      <button onClick={() => setRows([...rows, { service: "", price: "" }])} className="mt-4 text-sm font-semibold text-trust">
+      <button onClick={() => setRows([...rows, { service_name: "", price_range: "" }])} className="mt-4 text-sm font-semibold text-trust">
         + Add a service
       </button>
     </div>
   );
 }
 
-function Faq() {
-  const presets = ["Do you accept insurance?", "Is there an emergency fee?", "What areas do you serve?"];
+type FaqItem = { question: string; answer: string };
+function Faq({ items, setItems }: { items: FaqItem[]; setItems: (f: FaqItem[]) => void }) {
   return (
     <div className="space-y-4">
-      {presets.map((q) => (
-        <div key={q}>
-          <label className="label">{q}</label>
-          <textarea className="input" rows={2} placeholder="Your answer…" />
+      {items.map((q, i) => (
+        <div key={i}>
+          <label className="label">{q.question || "Question"}</label>
+          <textarea className="input" rows={2} placeholder="Your answer…" value={q.answer}
+            onChange={(e) => setItems(items.map((x, j) => (j === i ? { ...x, answer: e.target.value } : x)))} />
         </div>
       ))}
       <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center">

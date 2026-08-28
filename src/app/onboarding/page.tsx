@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { saveBusiness } from "@/lib/actions";
+import { provisionAssistant } from "@/lib/vapi/provision";
 
 const STEPS = [
   "Business info",
@@ -67,6 +68,13 @@ export default function OnboardingPage() {
       },
       true, // completeOnboarding
     );
+    // Best-effort: provision the tenant's Vapi assistant. No-ops in demo mode
+    // or before VAPI_API_KEY is set, and never blocks going live.
+    try {
+      await provisionAssistant();
+    } catch {
+      /* ignore — can be re-synced from Settings */
+    }
     router.push("/dashboard");
     router.refresh();
   };

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { saveBusiness, type BusinessPayload } from "@/lib/actions";
+import { provisionAssistant } from "@/lib/vapi/provision";
 
 const INDUSTRIES = ["Plumbing", "Dental", "HVAC", "Legal", "Salon", "Auto repair", "Landscaping", "Other"];
 const VOICES = [
@@ -15,8 +16,27 @@ export function SettingsForm({ initial }: { initial: BusinessPayload }) {
   const [f, setF] = useState<BusinessPayload>(initial);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [msg, setMsg] = useState("");
+  const [sync, setSync] = useState<"idle" | "syncing" | "done" | "error">("idle");
+  const [syncMsg, setSyncMsg] = useState("");
 
   const set = (patch: Partial<BusinessPayload>) => setF((p) => ({ ...p, ...patch }));
+
+  async function onSync() {
+    setSync("syncing");
+    const res = await provisionAssistant();
+    if (res.ok) {
+      setSync("done");
+      setSyncMsg("AI receptionist updated with your latest info.");
+    } else {
+      setSync("error");
+      setSyncMsg(
+        res.skipped === "vapi-not-configured"
+          ? "Add VAPI_API_KEY in your environment to enable the live phone assistant."
+          : res.error || "Couldn't sync the assistant.",
+      );
+    }
+    setTimeout(() => setSync("idle"), 4000);
+  }
 
   async function onSave() {
     setState("saving");
@@ -123,6 +143,21 @@ export function SettingsForm({ initial }: { initial: BusinessPayload }) {
           onClick={() => set({ faq: [...f.faq, { question: "", answer: "" }] })}>
           + Add a question
         </button>
+      </section>
+
+      <section className="card">
+        <h2 className="font-display text-lg font-semibold text-slate-900">AI receptionist</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          After changing your info above, re-sync so your live phone assistant uses the latest
+          prompt, pricing, and FAQ.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button className="btn-ghost" onClick={onSync} disabled={sync === "syncing"}>
+            {sync === "syncing" ? "Syncing…" : "Sync AI receptionist"}
+          </button>
+          {sync === "done" && <span className="text-sm font-medium text-success">✓ {syncMsg}</span>}
+          {sync === "error" && <span className="text-sm font-medium text-alert">{syncMsg}</span>}
+        </div>
       </section>
 
       <div className="flex items-center justify-end gap-3">

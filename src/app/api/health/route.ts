@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isSupabaseConfigured, SUPABASE_URL } from "@/lib/supabase/config";
+import { serverEnv } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,6 +36,16 @@ export async function GET() {
     runtimeHasAnonKey: Boolean(runtimeKey),
     projectRef: host,
     mode: isSupabaseConfigured ? "real" : "demo",
+    // AI-engine env presence (runtime, server-only) — booleans only, no secrets.
+    aiEngine: {
+      openaiConfigured: Boolean(serverEnv.openaiApiKey),
+      vapiConfigured: Boolean(serverEnv.vapiApiKey),
+      vapiWebhookSecretSet: Boolean(serverEnv.vapiWebhookSecret),
+      serviceRoleConfigured: Boolean(serverEnv.supabaseServiceRoleKey),
+      appUrl: serverEnv.appUrl, // the public base URL used for the Vapi serverUrl
+    },
+    // True once everything the "Sync AI receptionist" button needs is live:
+    readyToSync: isSupabaseConfigured && Boolean(serverEnv.vapiApiKey),
     builtAt: new Date().toISOString(),
   });
 }

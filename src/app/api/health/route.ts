@@ -46,6 +46,26 @@ export async function GET() {
     },
     // True once everything the "Sync AI receptionist" button needs is live:
     readyToSync: isSupabaseConfigured && Boolean(serverEnv.vapiApiKey),
+    // ── Definitive diagnostics (names + lengths + deployment identity; NEVER values) ──
+    debug: {
+      // Request-time dynamic read (independent of the module-init serverEnv above):
+      runtimeOpenaiPresent: Boolean(process.env[["OPENAI", "API", "KEY"].join("_")]),
+      openaiKeyLen: (process.env[["OPENAI", "API", "KEY"].join("_")] || "").length,
+      vapiKeyLen: (process.env[["VAPI", "API", "KEY"].join("_")] || "").length,
+      serviceRoleLen: (process.env[["SUPABASE", "SERVICE", "ROLE", "KEY"].join("_")] || "").length,
+      // Every env-var NAME the running function actually received (names only):
+      envNamesSeen: Object.keys(process.env)
+        .filter((k) => /OPENAI|VAPI|SUPABASE|APP_URL|N8N/i.test(k))
+        .sort(),
+      // Which Vercel project / branch / commit / environment is serving THIS response:
+      vercel: {
+        env: process.env.VERCEL_ENV ?? null,
+        url: process.env.VERCEL_URL ?? null,
+        branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+        commit: (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || null,
+        prodUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? null,
+      },
+    },
     builtAt: new Date().toISOString(),
   });
 }
